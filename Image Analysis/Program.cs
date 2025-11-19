@@ -63,6 +63,7 @@ namespace Azure_AI_102_Samples
             Console.WriteLine("   but will show an error due to feature restrictions.");
             Console.WriteLine();
 
+
             // Run it to show the current implementation
             await Identify_Celebrities.RunCelebrityDetectionAsync();
         }
