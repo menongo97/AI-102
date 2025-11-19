@@ -14,7 +14,7 @@ namespace Azure_AI_102_Samples
         // Use the same credentials as CognitiveServices.cs
         private static readonly string subscriptionKey = Environment.GetEnvironmentVariable("AZURE_VISION_KEY") ?? "<PASTE_YOUR_COMPUTER_VISION_SUBSCRIPTION_KEY_HERE>";
         private static readonly string endpoint = Environment.GetEnvironmentVariable("AZURE_VISION_ENDPOINT") ?? "<PASTE_YOUR_COMPUTER_VISION_ENDPOINT_HERE>";
-        
+
         // Public method to run handwriting conversion from image
         public static async Task RunHandwritingConversionAsync()
         {
@@ -56,16 +56,16 @@ namespace Azure_AI_102_Samples
         private static async Task ConvertHandwritingFromImageAsync(ImageAnalysisClient client)
         {
             Console.WriteLine("🔍 Analyzing image for handwritten text...");
-  
+
             // You can use either a local image file or a URL
             // For demonstration, I'll show both options
-            
+
             // Option 1: Using a URL (replace with your image URL)
             string imageUrl = "https://learn.microsoft.com/azure/ai-services/computer-vision/media/handwriting-sample.jpg";
-   
+
             // Option 2: Using a local file (uncomment and modify path as needed)
             // string localImagePath = @"path\to\your\handwriting-sample.jpg";
-  
+
             try
             {
                 // Analyze image from URL
@@ -87,27 +87,27 @@ namespace Azure_AI_102_Samples
                 {
                     Console.WriteLine("📝 Extracted Handwritten Text:");
                     Console.WriteLine("=====================================");
-       
+
                     foreach (var block in result.Read.Blocks)
                     {
                         foreach (var line in block.Lines)
                         {
                             Console.WriteLine($"📄 Line: {line.Text}");
-         
+
                             // Display individual words with confidence scores
                             foreach (var word in line.Words)
                             {
                                 Console.WriteLine($"   💭 Word: '{word.Text}' (Confidence: {word.Confidence:F2})");
                             }
-                         Console.WriteLine();
+                            Console.WriteLine();
                         }
-       }
-       
+                    }
+
                     // Extract all text as a single string
                     var allText = string.Join(" ", result.Read.Blocks
                         .SelectMany(block => block.Lines)
                         .Select(line => line.Text));
-     
+
                     Console.WriteLine("📋 Complete Extracted Text:");
                     Console.WriteLine("============================");
                     Console.WriteLine(allText);
@@ -144,19 +144,19 @@ namespace Azure_AI_102_Samples
             Console.WriteLine("===== Handwriting Conversion From Local File =====");
             Console.WriteLine($"🖋️  Analyzing file: {imagePath}");
             Console.WriteLine();
-          
+
             try
             {
-                 if (!File.Exists(imagePath))
-                 {
-                     Console.WriteLine($"❌ File not found: {imagePath}");
-                   return;
+                if (!File.Exists(imagePath))
+                {
+                    Console.WriteLine($"❌ File not found: {imagePath}");
+                    return;
                 }
 
                 ImageAnalysisClient client = AuthenticateClient(endpoint, subscriptionKey);
-               
+
                 byte[] imageData = await File.ReadAllBytesAsync(imagePath);
-              
+
                 ImageAnalysisResult result = await client.AnalyzeAsync(
                     BinaryData.FromBytes(imageData),
                     VisualFeatures.Read);
@@ -169,7 +169,7 @@ namespace Azure_AI_102_Samples
                 {
                     Console.WriteLine("📝 Extracted Handwritten Text:");
                     Console.WriteLine("=====================================");
-  
+
                     foreach (var block in result.Read.Blocks)
                     {
                         foreach (var line in block.Lines)
