@@ -11,77 +11,97 @@ namespace Azure_AI_102_Samples
     internal class Identify_Celebrities
     {
         // Add your Computer Vision subscription key and endpoint
-        private static string subscriptionKey = "<enter your key here>";
-        private static string endpoint = "<enter your endpoint URL here>";
+        private static readonly string subscriptionKey = Environment.GetEnvironmentVariable("VISION_KEY") ?? "<enter your key here>";
+        private static readonly string endpoint = Environment.GetEnvironmentVariable("VISION_ENDPOINT") ?? "<enter your endpoint URL here>";
 
-        private static ComputerVisionClient computervisionClient;
+        private static ComputerVisionClient? computervisionClient;
 
         public static async Task Main(string[] args)
         {
             Console.WriteLine("===== Celebrity Detection Sample =====");
+            Console.WriteLine("⚠️  Note: Celebrity detection uses legacy Azure Computer Vision API");
+            Console.WriteLine("   For modern image analysis, see CognitiveServices.cs example");
             Console.WriteLine();
 
-            // Initialize the Computer Vision client
-            computervisionClient = new ComputerVisionClient(new ApiKeyServiceClientCredentials(subscriptionKey))
+            // Validate credentials
+            if (subscriptionKey.Contains("<enter") || endpoint.Contains("<enter"))
             {
-                Endpoint = endpoint
-            };
+                Console.WriteLine("❌ Please set your Azure Computer Vision credentials:");
+                Console.WriteLine("   - Set VISION_KEY environment variable OR update subscriptionKey");
+                Console.WriteLine("   - Set VISION_ENDPOINT environment variable OR update endpoint");
+                Console.WriteLine("\nPress any key to exit...");
+                Console.ReadKey();
+                return;
+            }
 
-            // Run celebrity detection examples
-            await DetectCelebritiesRemote();
-            await DetectCelebritiesLocal();
+            try
+            {
+                // Initialize the Computer Vision client with modern error handling
+                computervisionClient = AuthenticateComputerVisionClient(endpoint, subscriptionKey);
+
+                // Run celebrity detection examples
+                await DetectCelebritiesRemoteAsync();
+                await DetectCelebritiesLocalAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Application error: {ex.Message}");
+            }
+            finally
+            {
+                computervisionClient?.Dispose();
+            }
 
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
 
         /// <summary>
+        /// Authenticate Computer Vision client (Legacy API required for celebrity detection)
+        /// </summary>
+        private static ComputerVisionClient AuthenticateComputerVisionClient(string endpoint, string key)
+        {
+            var client = new ComputerVisionClient(new ApiKeyServiceClientCredentials(key))
+            {
+                Endpoint = endpoint
+            };
+
+            Console.WriteLine("✅ Computer Vision client authenticated successfully");
+            Console.WriteLine($"   Endpoint: {endpoint}");
+            Console.WriteLine();
+
+            return client;
+        }
+
+        /// <summary>
         /// Detect Domain-specific Content - remote
         /// This example detects celebrities in remote images.
         /// </summary>
-        private static async Task DetectCelebritiesRemote()
+        private static async Task DetectCelebritiesRemoteAsync()
         {
-            Console.WriteLine("===== Detect Domain-specific Content - remote =====");
+            Console.WriteLine("===== Detect Domain-specific Content - Remote =====");
 
             // URL of one or more celebrities
-            string remoteImageUrlCelebs = "https://raw.githubusercontent.com/Azure-Samples/cognitive-services-sample-data-files" +
-                  "/master/ComputerVision/Images/faces.jpg";
+            const string remoteImageUrlCelebs = "https://raw.githubusercontent.com/Azure-Samples/cognitive-services-sample-data-files/master/ComputerVision/Images/faces.jpg";
 
             try
             {
+                Console.WriteLine($"🔍 Analyzing remote image: {remoteImageUrlCelebs}");
+
                 // Call API with content type (celebrities) and URL
-                var detectDomainResultsCelebsRemote = await computervisionClient.AnalyzeImageByDomainAsync("celebrities", remoteImageUrlCelebs);
+                var detectDomainResults = await computervisionClient!.AnalyzeImageByDomainAsync("celebrities", remoteImageUrlCelebs);
 
                 // Print detection results with name
-                Console.WriteLine("Celebrities in the remote image:");
-
-                if (detectDomainResultsCelebsRemote?.Result != null)
-                {
-                    var resultJson = JObject.Parse(detectDomainResultsCelebsRemote.Result.ToString());
-                    var celebritiesArray = resultJson["celebrities"];
-
-                    if (celebritiesArray == null || !celebritiesArray.HasValues)
-                    {
-                        Console.WriteLine("No celebrities detected.");
-                    }
-                    else
-                    {
-                        foreach (var celeb in celebritiesArray)
-                        {
-                            string name = celeb["name"]?.ToString();
-                            double confidence = celeb["confidence"]?.Value<double>() ?? 0.0;
-                            Console.WriteLine($"- {name} (Confidence: {confidence:F4})");
-                        }
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("No celebrities detected.");
-                }
+                Console.WriteLine("\n👥 Celebrities detected in remote image:");
+                await DisplayCelebrityResults(detectDomainResults);
+            }
+            catch (ComputerVisionErrorResponseException cvEx)
+            {
+                Console.WriteLine($"❌ Computer Vision API error: {cvEx.Response.Content}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error detecting celebrities in remote image: {ex.Message}");
+                Console.WriteLine($"❌ Error detecting celebrities in remote image: {ex.Message}");
             }
 
             Console.WriteLine();
@@ -91,66 +111,105 @@ namespace Azure_AI_102_Samples
         /// Detect Domain-specific Content - local
         /// This example detects celebrities in local images.
         /// </summary>
-        private static async Task DetectCelebritiesLocal()
+        private static async Task DetectCelebritiesLocalAsync()
         {
-            Console.WriteLine("===== Detect Domain-specific Content - local =====");
+            Console.WriteLine("===== Detect Domain-specific Content - Local =====");
 
             // Open local image file containing a celebrity
-            string localImagePathCelebrity = "Images/Faces.jpg";
+            const string localImagePathCelebrity = "Images/Faces.jpg";
 
             try
             {
                 if (!File.Exists(localImagePathCelebrity))
                 {
-                    Console.WriteLine($"Local image file not found: {localImagePathCelebrity}");
-                    Console.WriteLine("Please ensure the image file exists in the specified path.");
+                    Console.WriteLine($"⚠️  Local image file not found: {localImagePathCelebrity}");
+                    Console.WriteLine("   Please ensure the image file exists in the specified path.");
+                    Console.WriteLine("   You can download a sample image from:");
+                    Console.WriteLine("   https://raw.githubusercontent.com/Azure-Samples/cognitive-services-sample-data-files/master/ComputerVision/Images/faces.jpg");
                     return;
                 }
 
-                using (var localImageCelebrity = File.OpenRead(localImagePathCelebrity))
-                {
-                    // Call API with the type of content (celebrities) and local image
-                    var detectDomainResultsCelebsLocal = await computervisionClient.AnalyzeImageByDomainInStreamAsync("celebrities", localImageCelebrity);
+                Console.WriteLine($"🔍 Analyzing local image: {localImagePathCelebrity}");
 
-                    // Print which celebrities (if any) were detected
-                    Console.WriteLine("Celebrities in the local image:");
+                using var localImageStream = File.OpenRead(localImagePathCelebrity);
 
-                    if (detectDomainResultsCelebsLocal?.Result != null)
-                    {
-                        var resultJson = JObject.Parse(detectDomainResultsCelebsLocal.Result.ToString());
-                        var celebritiesArray = resultJson["celebrities"];
+                // Call API with the type of content (celebrities) and local image
+                var detectDomainResults = await computervisionClient!.AnalyzeImageByDomainInStreamAsync("celebrities", localImageStream);
 
-                        if (celebritiesArray == null || !celebritiesArray.HasValues)
-                        {
-                            Console.WriteLine("No celebrities detected.");
-                        }
-                        else
-                        {
-                            foreach (var celeb in celebritiesArray)
-                            {
-                                string name = celeb["name"]?.ToString();
-                                double confidence = celeb["confidence"]?.Value<double>() ?? 0.0;
-                                Console.WriteLine($"- {name} (Confidence: {confidence:F4})");
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("No celebrities detected.");
-                    }
-                }
+                // Print which celebrities (if any) were detected
+                Console.WriteLine("\n👥 Celebrities detected in local image:");
+                await DisplayCelebrityResults(detectDomainResults);
             }
             catch (FileNotFoundException)
             {
-                Console.WriteLine($"Local image file not found: {localImagePathCelebrity}");
-                Console.WriteLine("Please ensure the image file exists in the specified path.");
+                Console.WriteLine($"❌ Local image file not found: {localImagePathCelebrity}");
+                Console.WriteLine("   Please ensure the image file exists in the specified path.");
+            }
+            catch (ComputerVisionErrorResponseException cvEx)
+            {
+                Console.WriteLine($"❌ Computer Vision API error: {cvEx.Response.Content}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error detecting celebrities in local image: {ex.Message}");
+                Console.WriteLine($"❌ Error detecting celebrities in local image: {ex.Message}");
             }
 
             Console.WriteLine();
+        }
+
+        /// <summary>
+        /// Display celebrity detection results
+        /// </summary>
+        private static async Task DisplayCelebrityResults(DomainModelResults results)
+        {
+            await Task.Run(() =>
+                       {
+                           if (results?.Result == null)
+                           {
+                               Console.WriteLine("   No celebrities detected (null result)");
+                               return;
+                           }
+
+                           try
+                           {
+                               var resultJson = JObject.Parse(results.Result.ToString()!);
+                               var celebritiesArray = resultJson["celebrities"];
+
+                               if (celebritiesArray == null || !celebritiesArray.HasValues)
+                               {
+                                   Console.WriteLine("   No celebrities detected");
+                                   return;
+                               }
+
+                               var celebrities = new List<(string Name, double Confidence)>();
+
+                               foreach (var celeb in celebritiesArray)
+                               {
+                                   string name = celeb["name"]?.ToString() ?? "Unknown";
+                                   double confidence = celeb["confidence"]?.Value<double>() ?? 0.0;
+                                   celebrities.Add((name, confidence));
+                               }
+
+                               // Sort by confidence descending
+                               celebrities.Sort((a, b) => b.Confidence.CompareTo(a.Confidence));
+
+                               foreach (var (name, confidence) in celebrities)
+                               {
+                                   var confidenceLevel = confidence switch
+                                   {
+                                       >= 0.8 => "🟢 High",
+                                       >= 0.5 => "🟡 Medium",
+                                       _ => "🔴 Low"
+                                   };
+
+                                   Console.WriteLine($"   ⭐ {name} (Confidence: {confidence:F4} - {confidenceLevel})");
+                               }
+                           }
+                           catch (Exception ex)
+                           {
+                               Console.WriteLine($"   ❌ Error parsing results: {ex.Message}");
+                           }
+                       });
         }
     }
 }
