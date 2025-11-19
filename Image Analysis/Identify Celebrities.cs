@@ -10,9 +10,9 @@ namespace Azure_AI_102_Samples
 {
     public class Identify_Celebrities
     {
-        // Add your Computer Vision subscription key and endpoint
-        private static readonly string subscriptionKey = Environment.GetEnvironmentVariable("VISION_KEY") ?? "<enter your key here>";
-        private static readonly string endpoint = Environment.GetEnvironmentVariable("VISION_ENDPOINT") ?? "<enter your endpoint URL here>";
+        // Use the same credentials as other files  
+        private static readonly string subscriptionKey = Environment.GetEnvironmentVariable("AZURE_VISION_KEY") ?? "<PASTE_YOUR_COMPUTER_VISION_SUBSCRIPTION_KEY_HERE>";
+private static readonly string endpoint = Environment.GetEnvironmentVariable("AZURE_VISION_ENDPOINT") ?? "<PASTE_YOUR_COMPUTER_VISION_ENDPOINT_HERE>";
 
         private static ComputerVisionClient? computervisionClient;
 
@@ -21,17 +21,8 @@ namespace Azure_AI_102_Samples
         {
             Console.WriteLine("===== Celebrity Detection Sample =====");
             Console.WriteLine("⚠️  Note: Celebrity detection uses legacy Azure Computer Vision API");
-            Console.WriteLine("   For modern image analysis, see CognitiveServices.cs example");
+            Console.WriteLine("   This feature now requires special Microsoft approval.");
             Console.WriteLine();
-
-            // Validate credentials
-            if (subscriptionKey.Contains("<enter") || endpoint.Contains("<enter"))
-            {
-                Console.WriteLine("❌ Please set your Azure Computer Vision credentials:");
-                Console.WriteLine("   - Set VISION_KEY environment variable OR update subscriptionKey");
-                Console.WriteLine("   - Set VISION_ENDPOINT environment variable OR update endpoint");
-                return;
-            }
 
             try
             {
@@ -103,6 +94,8 @@ namespace Azure_AI_102_Samples
             catch (ComputerVisionErrorResponseException cvEx)
             {
                 Console.WriteLine($"❌ Computer Vision API error: {cvEx.Response.Content}");
+                Console.WriteLine("   This error is expected - celebrity detection requires special approval.");
+                Console.WriteLine("   Apply for access at: https://aka.ms/celebrityrecognition");
             }
             catch (Exception ex)
             {
@@ -153,6 +146,7 @@ namespace Azure_AI_102_Samples
             catch (ComputerVisionErrorResponseException cvEx)
             {
                 Console.WriteLine($"❌ Computer Vision API error: {cvEx.Response.Content}");
+                Console.WriteLine("   This error is expected - celebrity detection requires special approval.");
             }
             catch (Exception ex)
             {
@@ -168,53 +162,53 @@ namespace Azure_AI_102_Samples
         private static async Task DisplayCelebrityResults(DomainModelResults results)
         {
             await Task.Run(() =>
-      {
-          if (results?.Result == null)
-          {
-              Console.WriteLine("   No celebrities detected (null result)");
-              return;
-          }
+                {
+                    if (results?.Result == null)
+                    {
+                        Console.WriteLine("   No celebrities detected (null result)");
+                        return;
+                    }
 
-          try
-          {
-              var resultJson = JObject.Parse(results.Result.ToString()!);
-              var celebritiesArray = resultJson["celebrities"];
+                    try
+                    {
+                        var resultJson = JObject.Parse(results.Result.ToString()!);
+                        var celebritiesArray = resultJson["celebrities"];
 
-              if (celebritiesArray == null || !celebritiesArray.HasValues)
-              {
-                  Console.WriteLine("   No celebrities detected");
-                  return;
-              }
+                        if (celebritiesArray == null || !celebritiesArray.HasValues)
+                        {
+                            Console.WriteLine("   No celebrities detected");
+                            return;
+                        }
 
-              var celebrities = new List<(string Name, double Confidence)>();
+                        var celebrities = new List<(string Name, double Confidence)>();
 
-              foreach (var celeb in celebritiesArray)
-              {
-                  string name = celeb["name"]?.ToString() ?? "Unknown";
-                  double confidence = celeb["confidence"]?.Value<double>() ?? 0.0;
-                  celebrities.Add((name, confidence));
-              }
+                        foreach (var celeb in celebritiesArray)
+                        {
+                            string name = celeb["name"]?.ToString() ?? "Unknown";
+                            double confidence = celeb["confidence"]?.Value<double>() ?? 0.0;
+                            celebrities.Add((name, confidence));
+                        }
 
-              // Sort by confidence descending
-              celebrities.Sort((a, b) => b.Confidence.CompareTo(a.Confidence));
+                        // Sort by confidence descending
+                        celebrities.Sort((a, b) => b.Confidence.CompareTo(a.Confidence));
 
-              foreach (var (name, confidence) in celebrities)
-              {
-                  var confidenceLevel = confidence switch
-                  {
-                      >= 0.8 => "🟢 High",
-                      >= 0.5 => "🟡 Medium",
-                      _ => "🔴 Low"
-                  };
+                        foreach (var (name, confidence) in celebrities)
+                        {
+                            var confidenceLevel = confidence switch
+                            {
+                                >= 0.8 => "🟢 High",
+                                >= 0.5 => "🟡 Medium",
+                                _ => "🔴 Low"
+                            };
 
-                  Console.WriteLine($"   ⭐ {name} (Confidence: {confidence:F4} - {confidenceLevel})");
-              }
-          }
-          catch (Exception ex)
-          {
-              Console.WriteLine($"   ❌ Error parsing results: {ex.Message}");
-          }
-      });
+                            Console.WriteLine($"   ⭐ {name} (Confidence: {confidence:F4} - {confidenceLevel})");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"   ❌ Error parsing results: {ex.Message}");
+                    }
+                });
         }
     }
 }

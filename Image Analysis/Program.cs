@@ -16,8 +16,8 @@ namespace Azure_AI_102_Samples
             while (continueRunning)
             {
                 Console.WriteLine("Choose an option:");
-                Console.WriteLine("1. ?? Celebrity Detection (Legacy API)");
-                Console.WriteLine("2. ?? Modern Image Analysis");
+                Console.WriteLine("1. ?? Celebrity Detection (Legacy API) - ?? Requires Special Access");
+                Console.WriteLine("2. ?? Modern Image Analysis (Current API)");
                 Console.WriteLine("3. ?? Exit");
                 Console.Write("\nEnter your choice (1-3): ");
 
@@ -53,9 +53,17 @@ namespace Azure_AI_102_Samples
 
         private static async Task RunCelebrityDetection()
         {
-            Console.WriteLine("?? Starting Celebrity Detection...");
+            Console.WriteLine("?? Celebrity Detection (Restricted Feature)");
+            Console.WriteLine();
+            Console.WriteLine("??  IMPORTANT: Celebrity Recognition is now a restricted feature.");
+            Console.WriteLine("   Microsoft requires special approval for access.");
+            Console.WriteLine("   Apply at: https://aka.ms/celebrityrecognition");
+            Console.WriteLine();
+            Console.WriteLine("   The following will demonstrate the celebrity detection code,");
+            Console.WriteLine("   but will show an error due to feature restrictions.");
             Console.WriteLine();
 
+            // Run it to show the current implementation
             await Identify_Celebrities.RunCelebrityDetectionAsync();
         }
 
@@ -63,11 +71,9 @@ namespace Azure_AI_102_Samples
         {
             Console.WriteLine("?? Starting Modern Image Analysis...");
             Console.WriteLine();
-            Console.WriteLine("??  This feature requires integration with the modern CognitiveServices.cs code.");
-            Console.WriteLine("   You can run that separately or integrate it here.");
-            Console.WriteLine("   For now, please use the CognitiveServices.cs file directly.");
 
-            await Task.CompletedTask; // Placeholder
+            // Call the modern image analysis
+            await ModernImageAnalysis.RunImageAnalysisAsync();
         }
     }
 }
