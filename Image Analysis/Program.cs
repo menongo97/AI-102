@@ -19,8 +19,9 @@ namespace Azure_AI_102_Samples
                 Console.WriteLine("1. ?? Celebrity Detection (Legacy API) - ?? Requires Special Access");
                 Console.WriteLine("2. ?? Modern Image Analysis (Current API)");
                 Console.WriteLine("3. ??? Hand Writing OCR");
-                Console.WriteLine("4. ?? Exit");
-                Console.Write("\nEnter your choice (1-4): ");
+                Console.WriteLine("4. ?? Adult Content Detection");
+                Console.WriteLine("5. ?? Exit");
+                Console.Write("\nEnter your choice (1-5): ");
 
                 string? choice = Console.ReadLine();
                 Console.WriteLine();
@@ -37,11 +38,14 @@ namespace Azure_AI_102_Samples
                         await RunHandwritingOCR();
                         break;
                     case "4":
+                        await RunAdultContentDetection();
+                        break;
+                    case "5":
                         continueRunning = false;
                         Console.WriteLine("?? Goodbye!");
                         break;
                     default:
-                        Console.WriteLine("? Invalid choice. Please enter 1, 2, 3, or 4.");
+                        Console.WriteLine("? Invalid choice. Please enter 1, 2, 3, 4, or 5.");
                         break;
                 }
 
@@ -87,6 +91,15 @@ namespace Azure_AI_102_Samples
 
             // Call the handwriting conversion method
             await HandWriting_Conversion_From_Image.RunHandwritingConversionAsync();
+        }
+
+        private static async Task RunAdultContentDetection()
+        {
+            Console.WriteLine("?? Starting Adult Content Detection...");
+            Console.WriteLine();
+
+            // Call the adult content detection method
+            await Adult_Content_Detection.RunAdultContentDetectionAsync();
         }
     }
 }
