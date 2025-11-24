@@ -18,8 +18,10 @@ namespace Azure_AI_102_Samples
                 Console.WriteLine("Choose an option:");
                 Console.WriteLine("1. ?? Celebrity Detection (Legacy API) - ?? Requires Special Access");
                 Console.WriteLine("2. ?? Modern Image Analysis (Current API)");
-                Console.WriteLine("3. ?? Exit");
-                Console.Write("\nEnter your choice (1-3): ");
+                Console.WriteLine("3. ??? Hand Writing OCR");
+                Console.WriteLine("4. ?? Adult Content Detection");
+                Console.WriteLine("5. ?? Exit");
+                Console.Write("\nEnter your choice (1-5): ");
 
                 string? choice = Console.ReadLine();
                 Console.WriteLine();
@@ -33,11 +35,17 @@ namespace Azure_AI_102_Samples
                         await RunModernImageAnalysis();
                         break;
                     case "3":
+                        await RunHandwritingOCR();
+                        break;
+                    case "4":
+                        await RunAdultContentDetection();
+                        break;
+                    case "5":
                         continueRunning = false;
                         Console.WriteLine("?? Goodbye!");
                         break;
                     default:
-                        Console.WriteLine("? Invalid choice. Please enter 1, 2, or 3.");
+                        Console.WriteLine("? Invalid choice. Please enter 1, 2, 3, 4, or 5.");
                         break;
                 }
 
@@ -63,7 +71,6 @@ namespace Azure_AI_102_Samples
             Console.WriteLine("   but will show an error due to feature restrictions.");
             Console.WriteLine();
 
-
             // Run it to show the current implementation
             await Identify_Celebrities.RunCelebrityDetectionAsync();
         }
@@ -75,6 +82,24 @@ namespace Azure_AI_102_Samples
 
             // Call the modern image analysis
             await ModernImageAnalysis.RunImageAnalysisAsync();
+        }
+
+        private static async Task RunHandwritingOCR()
+        {
+            Console.WriteLine("??? Starting Handwriting OCR Analysis...");
+            Console.WriteLine();
+
+            // Call the handwriting conversion method
+            await HandWriting_Conversion_From_Image.RunHandwritingConversionAsync();
+        }
+
+        private static async Task RunAdultContentDetection()
+        {
+            Console.WriteLine("?? Starting Adult Content Detection...");
+            Console.WriteLine();
+
+            // Call the adult content detection method
+            await Adult_Content_Detection.RunAdultContentDetectionAsync();
         }
     }
 }

@@ -12,9 +12,9 @@ namespace Azure_AI_102_Samples
     public class HandWriting_Conversion_From_Image
     {
         // Use the same credentials as CognitiveServices.cs
-        private static readonly string subscriptionKey = Environment.GetEnvironmentVariable("AZURE_VISION_KEY") ?? "<PASTE_YOUR_COMPUTER_VISION_SUBSCRIPTION_KEY_HERE>";
-        private static readonly string endpoint = Environment.GetEnvironmentVariable("AZURE_VISION_ENDPOINT") ?? "<PASTE_YOUR_COMPUTER_VISION_ENDPOINT_HERE>";
-        
+        private static readonly string subscriptionKey = Environment.GetEnvironmentVariable("AZURE_VISION_KEY") ?? "<Paste your key here>";
+        private static readonly string endpoint = Environment.GetEnvironmentVariable("AZURE_VISION_ENDPOINT") ?? "< Paste your endpoint here>";
+
         // Public method to run handwriting conversion from image
         public static async Task RunHandwritingConversionAsync()
         {
@@ -56,83 +56,162 @@ namespace Azure_AI_102_Samples
         private static async Task ConvertHandwritingFromImageAsync(ImageAnalysisClient client)
         {
             Console.WriteLine("🔍 Analyzing image for handwritten text...");
-  
-            // You can use either a local image file or a URL
-            // For demonstration, I'll show both options
-            
-            // Option 1: Using a URL (replace with your image URL)
-            string imageUrl = "https://learn.microsoft.com/azure/ai-services/computer-vision/media/handwriting-sample.jpg";
-   
-            // Option 2: Using a local file (uncomment and modify path as needed)
-            // string localImagePath = @"path\to\your\handwriting-sample.jpg";
-  
-            try
+
+            // Get the current working directory for debugging
+            string currentDir = Directory.GetCurrentDirectory();
+            Console.WriteLine($"🔧 Current working directory: {currentDir}");
+
+            // Try multiple possible paths for the image
+            string[] possiblePaths = {
+                Path.Combine("Image Analysis", "Images", "Teach-Handwriting-Step-13-Version-2.jpg"),
+                Path.Combine("Images", "Teach-Handwriting-Step-13-Version-2.jpg"),
+                Path.Combine("..", "Images", "Teach-Handwriting-Step-13-Version-2.jpg"),
+                Path.Combine("..", "..", "Image Analysis", "Images", "Teach-Handwriting-Step-13-Version-2.jpg"),
+                Path.Combine(currentDir, "Image Analysis", "Images", "Teach-Handwriting-Step-13-Version-2.jpg")
+            };
+
+            string localImagePath = null;
+
+            // Find the first path that exists
+            foreach (string path in possiblePaths)
             {
-                // Analyze image from URL
-                ImageAnalysisResult result = await client.AnalyzeAsync(
-                    BinaryData.FromObjectAsJson(new { url = imageUrl }),
-                    VisualFeatures.Read);
-
-                // Alternative: Analyze local image file
-                // byte[] imageData = await File.ReadAllBytesAsync(localImagePath);
-                // ImageAnalysisResult result = await client.AnalyzeAsync(
-                //     BinaryData.FromBytes(imageData),
-                //     VisualFeatures.Read);
-
-                Console.WriteLine($"📊 Image analysis completed. Model version: {result.ModelVersion}");
-                Console.WriteLine();
-
-                // Extract and display the handwritten text
-                if (result.Read?.Blocks != null && result.Read.Blocks.Any())
+                Console.WriteLine($"🔍 Checking path: {path}");
+                if (File.Exists(path))
                 {
-                    Console.WriteLine("📝 Extracted Handwritten Text:");
-                    Console.WriteLine("=====================================");
-       
-                    foreach (var block in result.Read.Blocks)
-                    {
-                        foreach (var line in block.Lines)
-                        {
-                            Console.WriteLine($"📄 Line: {line.Text}");
-         
-                            // Display individual words with confidence scores
-                            foreach (var word in line.Words)
-                            {
-                                Console.WriteLine($"   💭 Word: '{word.Text}' (Confidence: {word.Confidence:F2})");
-                            }
-                         Console.WriteLine();
-                        }
-       }
-       
-                    // Extract all text as a single string
-                    var allText = string.Join(" ", result.Read.Blocks
-                        .SelectMany(block => block.Lines)
-                        .Select(line => line.Text));
-     
-                    Console.WriteLine("📋 Complete Extracted Text:");
-                    Console.WriteLine("============================");
-                    Console.WriteLine(allText);
-                    Console.WriteLine();
+                    localImagePath = path;
+                    Console.WriteLine($"✅ Found image at: {localImagePath}");
+                    break;
                 }
                 else
                 {
-                    Console.WriteLine("❌ No handwritten text detected in the image.");
+                    Console.WriteLine($"❌ Not found at: {path}");
                 }
             }
-            catch (RequestFailedException ex)
+
+            if (localImagePath != null && File.Exists(localImagePath))
             {
-                Console.WriteLine($"❌ Azure AI Vision API error: {ex.Message}");
-                if (ex.Status == 401)
+                Console.WriteLine($"📁 Using local image: {localImagePath}");
+
+                try
                 {
-                    Console.WriteLine("💡 Please check your subscription key and endpoint configuration.");
+                    // Analyze local image file
+                    byte[] imageData = await File.ReadAllBytesAsync(localImagePath);
+                    Console.WriteLine($"📦 Image file size: {imageData.Length:N0} bytes");
+
+                    ImageAnalysisResult result = await client.AnalyzeAsync(
+               BinaryData.FromBytes(imageData),
+               VisualFeatures.Read);
+
+                    Console.WriteLine($"📊 Image analysis completed. Model version: {result.ModelVersion}");
+                    Console.WriteLine($"📄 Analyzed file: {Path.GetFileName(localImagePath)}");
+                    Console.WriteLine();
+
+                    // Extract and display the handwritten text
+                    if (result.Read?.Blocks != null && result.Read.Blocks.Any())
+                    {
+                        Console.WriteLine("📝 Extracted Handwritten Text:");
+                        Console.WriteLine("=====================================");
+
+                        foreach (var block in result.Read.Blocks)
+                        {
+                            foreach (var line in block.Lines)
+                            {
+                                Console.WriteLine($"📄 Line: {line.Text}");
+
+                                // Display individual words with confidence scores
+                                foreach (var word in line.Words)
+                                {
+                                    Console.WriteLine($"   💭 Word: '{word.Text}' (Confidence: {word.Confidence:F2})");
+                                }
+                                Console.WriteLine();
+                            }
+                        }
+
+                        // Extract all text as a single string
+                        var allText = string.Join(" ", result.Read.Blocks
+                        .SelectMany(block => block.Lines)
+                            .Select(line => line.Text));
+
+                        Console.WriteLine("📋 Complete Extracted Text:");
+                        Console.WriteLine("============================");
+                        Console.WriteLine(allText);
+                        Console.WriteLine();
+                    }
+                    else
+                    {
+                        Console.WriteLine("❌ No handwritten text detected in the image.");
+                    }
                 }
-                else if (ex.Status == 400)
+                catch (RequestFailedException ex)
                 {
-                    Console.WriteLine("💡 Please check if the image URL is valid and accessible.");
+                    Console.WriteLine($"❌ Azure AI Vision API error: {ex.Message}");
+                    if (ex.Status == 401)
+                    {
+                        Console.WriteLine("💡 Authentication failed. Please check:");
+                        Console.WriteLine("   - Your subscription key is valid and active");
+                        Console.WriteLine("   - Your endpoint URL is correct");
+                        Console.WriteLine("   - Your Azure subscription has sufficient credits");
+                    }
+                    else if (ex.Status == 400)
+                    {
+                        Console.WriteLine("💡 Bad request. Check if the image format is supported.");
+                    }
+                    else if (ex.Status == 403)
+                    {
+                        Console.WriteLine("💡 Access forbidden. Check your Azure resource permissions.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ Unexpected error: {ex.Message}");
                 }
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"❌ Unexpected error: {ex.Message}");
+                Console.WriteLine($"❌ Could not find the image file in any of the expected locations!");
+                Console.WriteLine("💡 Searched in the following locations:");
+                foreach (string path in possiblePaths)
+                {
+                    Console.WriteLine($"   - {Path.GetFullPath(path)}");
+                }
+
+                Console.WriteLine($"💡 Current working directory: {currentDir}");
+
+                // List available image files for debugging
+                try
+                {
+                    var searchDirs = new[] {
+   "Image Analysis\\Images",
+       "Images",
+     ".",
+       Path.Combine(currentDir, "Image Analysis", "Images")
+     };
+
+                    foreach (var dir in searchDirs)
+                    {
+                        if (Directory.Exists(dir))
+                        {
+                            Console.WriteLine($"💡 Contents of {Path.GetFullPath(dir)}:");
+                            var files = Directory.GetFiles(dir, "*.*")
+                                .Where(file =>
+                                    {
+                                        var ext = Path.GetExtension(file).ToLowerInvariant();
+                                        return ext == ".jpg" || ext == ".jpeg" || ext == ".png" ||
+                                            ext == ".bmp" || ext == ".gif" || ext == ".tiff";
+                                    });
+
+                            foreach (var file in files)
+                            {
+                                Console.WriteLine($"   - {Path.GetFileName(file)}");
+                            }
+                            break; // Stop after finding the first valid directory
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"💡 Error listing directories: {ex.Message}");
+                }
             }
         }
 
@@ -144,19 +223,19 @@ namespace Azure_AI_102_Samples
             Console.WriteLine("===== Handwriting Conversion From Local File =====");
             Console.WriteLine($"🖋️  Analyzing file: {imagePath}");
             Console.WriteLine();
-          
+
             try
             {
-                 if (!File.Exists(imagePath))
-                 {
-                     Console.WriteLine($"❌ File not found: {imagePath}");
-                   return;
+                if (!File.Exists(imagePath))
+                {
+                    Console.WriteLine($"❌ File not found: {imagePath}");
+                    return;
                 }
 
                 ImageAnalysisClient client = AuthenticateClient(endpoint, subscriptionKey);
-               
+
                 byte[] imageData = await File.ReadAllBytesAsync(imagePath);
-              
+
                 ImageAnalysisResult result = await client.AnalyzeAsync(
                     BinaryData.FromBytes(imageData),
                     VisualFeatures.Read);
@@ -169,7 +248,7 @@ namespace Azure_AI_102_Samples
                 {
                     Console.WriteLine("📝 Extracted Handwritten Text:");
                     Console.WriteLine("=====================================");
-  
+
                     foreach (var block in result.Read.Blocks)
                     {
                         foreach (var line in block.Lines)
